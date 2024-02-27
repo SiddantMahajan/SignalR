@@ -1,0 +1,35 @@
+﻿<!-- Views/Home/Index.cshtml -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebRTC Peer-to-Peer Video Calling</title>
+</head>
+<body>
+    <video id="localVideo" autoplay playsinline></video>
+    <video id="remoteVideo" autoplay playsinline></video>
+    <button id="startCallBtn">Start Call</button>
+
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.rawgit.com/andyet/simplewebrtc/latest/out/simplewebrtc.bundle.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            const webrtc = new SimpleWebRTC({
+                localVideoEl: 'localVideo',
+                remoteVideosEl: 'remoteVideo',
+                autoRequestMedia: true,
+                url: 'https://your-signaling-server-url' // Provide the signaling server URL
+            });
+
+            webrtc.on('readyToCall', function () {
+                $('#startCallBtn').click(function () {
+                    const targetUserId = prompt('Enter target user ID:');
+                    webrtc.joinRoom(targetUserId);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
