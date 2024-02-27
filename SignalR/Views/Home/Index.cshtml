@@ -16,19 +16,81 @@
 
     <script>
         $(document).ready(function () {
-            const webrtc = new SimpleWebRTC({
-                localVideoEl: 'localVideo',
-                remoteVideosEl: 'remoteVideo',
-                autoRequestMedia: true,
-                url: 'https://your-signaling-server-url' // Provide the signaling server URL
+            const configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+            const localVideo = document.getElementById("localVideo");
+            const remoteVideo = document.getElementById("remoteVideo");
+            const startCallBtn = document.getElementById("startCallBtn");
+
+            const pcConfig = { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] };
+            const pc = new RTCPeerConnection(pcConfig);
+
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(function (stream) {
+                    localVideo.srcObject = stream;
+                    pc.addStream(stream);
+                })
+                .catch(function (error) {
+                    console.error("Error accessing media devices: ", error);
+                });
+
+            startCallBtn.addEventListener("click", function () {
+                createOffer();
             });
 
-            webrtc.on('readyToCall', function () {
-                $('#startCallBtn').click(function () {
-                    const targetUserId = prompt('Enter target user ID:');
-                    webrtc.joinRoom(targetUserId);
-                });
-            });
+            pc.onicecandidate = function (event) {
+                if (event.candidate) {
+                    sendMessage({ 'ice': event.candidate });
+                }
+            };
+
+            pc.onaddstream = function (event) {
+                remoteVideo.srcObject = event.stream;
+            };
+
+            function createOffer() {
+                pc.createOffer(
+                    function (offer) {
+                        pc.setLocalDescription(offer);
+                        sendMessage({ 'offer': offer });
+                    },
+                    function (error) {
+                        console.error("Error creating offer: ", error);
+                    }
+                );
+            }
+
+            function createAnswer(offer) {
+                pc.setRemoteDescription(new RTCSessionDescription(offer));
+                pc.createAnswer(
+                    function (answer) {
+                        pc.setLocalDescription(answer);
+                        sendMessage({ 'answer': answer });
+                    },
+                    function (error) {
+                        console.error("Error creating answer: ", error);
+                    }
+                );
+            }
+
+            function handleIceCandidate(candidate) {
+                pc.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+
+            function handleMessage(message) {
+                if (message.offer) {
+                    createAnswer(message.offer);
+                } else if (message.answer) {
+                    pc.setRemoteDescription(new RTCSessionDescription(message.answer));
+                } else if (message.ice) {
+                    handleIceCandidate(message.ice);
+                }
+            }
+
+            function sendMessage(message) {
+                // Implement your method to send the message to the other peer
+                // For simplicity, you can use WebSocket, WebRTC data channel, or any other communication method
+                // In a real-world scenario, you might need to exchange messages securely.
+            }
         });
     </script>
 </body>
